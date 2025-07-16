@@ -1,0 +1,39 @@
+AITK-689-llm-chain-service/
+├── agents/
+│   ├── __init__.py
+│   ├── ai_base.py
+│   ├── base_agent.py
+│   ├── classifying_agent.py
+│   ├── search_agent.py
+│   └── search_agent_units.py  # Новый файл с юнитами
+├── core/
+│   ├── __init__.py
+│   ├── config.py
+│   └── data_types.py
+├── data/
+│   └── memory/
+├── piplines/
+│   ├── __init__.py
+│   └── expert_bot.py        # Рефакторинговая версия
+├── services/
+│   ├── __init__.py
+│   └── retriever.py
+├── tests/
+│   ├── __init__.py
+│   ├── conftest.py              # Новый файл с фикстурами
+│   ├── agents/
+│   │   ├── test_classifier_agent.py
+│   │   └── test_search_agent_units.py
+│   ├── core/
+│   │   └── test_data_types.py
+│   ├── pipelines/
+│   │   └── test_expert_bot.py
+│   └── services/
+│       └── test_retriever.py
+├── utils/
+│   ├── __init__.py
+│   ├── re_handle.py
+│   └── utils.py
+├── .env                     # Создайте его для ключей API
+├── main.py                  # Рефакторинговая версия с DI
+└── requirements.txt
