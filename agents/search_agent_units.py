@@ -1,13 +1,17 @@
 # agents/search_agent_units.py
 
 import os
-import json
 import re
+import uuid
+import json
+import logging
+import datetime
 from typing import List, Dict, Any
 
 from agents.ai_base import LLMGenerator
 from core.data_types import PromtsChain, AgentMemory, Parameters
 
+# ... (Классы AnalysisUnit, VotingUnit, AnswerGenerator остаются без изменений) ...
 class AnalysisUnit:
     """
     Отвечает за создание аналитической записки на основе найденных фрагментов.
@@ -126,29 +130,60 @@ class AnswerGenerator:
 
 class MemoryManager:
     """
-    Управляет состоянием и сохранением памяти агента.
+    Управляет сохранением памяти агента в файл.
+    Для каждого вызова метода save() генерируется уникальное имя файла.
     """
     def __init__(self, parameters: Parameters):
+        """
+        Инициализирует менеджер памяти.
+
+        :param parameters: Параметры приложения, содержащие путь для сохранения.
+        """
         self.memory_path = parameters.memory_path
+        # Убеждаемся, что директория для сохранения существует
         if not os.path.exists(self.memory_path):
             os.makedirs(self.memory_path)
-        self.count = 1
+
+    def _sanitize_filename(self, text: str, max_length: int = 50) -> str:
+        """
+        Очищает текст, чтобы его можно было безопасно использовать в имени файла.
+
+        :param text: Входной текст (например, запрос пользователя).
+        :param max_length: Максимальная длина очищенного текста.
+        :return: Очищенная строка.
+        """
+        # Удаляем недопустимые символы
+        text = re.sub(r'[\\/*?:"<>|]', "", text)
+        # Заменяем пробелы на подчеркивания
+        text = text.replace(" ", "_")
+        # Ограничиваем длину
+        return text[:max_length]
 
     def save(self, memory_data: Dict[str, Any], **kwargs):
         """
-        Сохраняет содержимое памяти в JSON-файл.
+        Сохраняет содержимое памяти в уникальный JSON-файл.
+
+        Имя файла генерируется на основе временной метки,
+        запроса пользователя и уникального идентификатора (UUID)
+        для предотвращения коллизий.
 
         :param memory_data: Словарь с данными из AgentMemory.
         :param kwargs: Дополнительные данные для сохранения.
         """
+        # Объединяем основные данные с дополнительными
         memory_data.update(kwargs)
         
-        json_out = f"{self.count}.json"
-        json_path = os.path.join(self.memory_path, json_out)
+        # --- Генерация уникального имени файла ---
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        query_part = self._sanitize_filename(memory_data.get("query", "no_query"))
+        unique_id = uuid.uuid4().hex[:8]  # Короткий UUID для уникальности
         
-        with open(json_path, 'w', encoding='utf-8') as f:
-            # Pydantic модели содержат и несериализуемые объекты, model_dump преобразует их
-            # Для простоты здесь предполагается, что memory_data уже сериализуем
-            json.dump(memory_data, f, ensure_ascii=False, indent=4, default=str)
+        filename = f"{timestamp}_{unique_id}.json"
         
-        self.count += 1
+        json_path = os.path.join(self.memory_path, filename)
+        
+        try:
+            with open(json_path, 'w', encoding='utf-8') as f:
+                json.dump(memory_data, f, ensure_ascii=False, indent=4, default=str)
+        except Exception as e:
+            logging.error(f"Не удалось сохранить файл памяти {json_path}: {e}")

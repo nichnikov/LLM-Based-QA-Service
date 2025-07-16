@@ -21,7 +21,13 @@ def get_parameters() -> Parameters:
     return Parameters()
 
 def get_prompts() -> PromtsChain:
-    return PromtsChain()
+    """
+    Зависимость для получения промптов.
+    Загружает промпты из внешнего JSON-файла.
+    """
+    # Путь к файлу с промптами
+    PROMPTS_FILE_PATH = "configs/prompts.json"
+    return PromtsChain.from_file(PROMPTS_FILE_PATH)
 
 # Создаем зависимости как функции, которые FastAPI сможет вызывать
 def get_ai_client(settings: Annotated[Settings, Depends(get_settings)]) -> LLMGenerator:
@@ -85,6 +91,7 @@ async def process_query(
     
     # Вызываем основной конвейер
     answer_text = await bot_pipeline(request.query, request.alias, deps)
+    print(f"Ответ: {answer_text}")
         
     if not answer_text or answer_text == "НЕТ ОТВЕТА":
         raise HTTPException(status_code=404, detail="No answer found")
